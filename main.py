@@ -15,14 +15,8 @@ cloudinary.config(
       api_secret = ''
     )
 
-def download_file(name, url):
-    # TODO - Exception handling for 404 and no directory
-    f = open('file/'+name+'.jpg','wb')
-    f.write(requests.get(url).content)
-    f.close()
-
 @app.route('/',methods=['POST'])
-def foo():
+def upload_image():
    print request.data
    data = json.loads(request.data)
    print data
