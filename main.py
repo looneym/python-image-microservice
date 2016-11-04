@@ -164,7 +164,7 @@ def upload_image():
 
         return cloudinary_url
    except:
-       # you sunk my battleship
+       # you sunk my battleship!
         print "Unexpected error:", sys.exc_info()[0]
         raise
 
