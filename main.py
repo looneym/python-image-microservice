@@ -11,6 +11,9 @@ import cloudinary.api
 from flask import Flask, abort, request, jsonify, g, url_for
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
+
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
@@ -34,11 +37,20 @@ cloudinary.config(
     )
 
 
+class Image(db.Model):
+    __tablename__ = 'images'
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(100), index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="images")
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), index=True)
     password_hash = db.Column(db.String(64))
+    images = relationship( "Image", order_by=Image.id, back_populates="user")
 
     def hash_password(self, password):
         self.password_hash = pwd_context.encrypt(password)
@@ -61,7 +73,6 @@ class User(db.Model):
             return None    # invalid token
         user = User.query.get(data['id'])
         return user
-
 
 @auth.verify_password
 def verify_password(username_or_token, password):
@@ -121,26 +132,44 @@ def get_auth_token():
 def get_resource():
     return jsonify({'data': 'Hello, %s!' % g.user.username})
 
+
+@app.route('/api/dump')
+@auth.login_required
+def dump_db():
+    results = Image.query.all()
+    images = []
+
+    for result in results:
+        images.append(result.url)
+
+    data = json.dumps(images)
+    return data
+
 @app.route('/api/image',methods=['POST'])
+@auth.login_required
 def upload_image():
    print request.data
    data = json.loads(request.data)
-   print data
+
    name = data['name']
    url = data['url']
 
    try:
-        # download_file(name, url)
         cloudinary.uploader.upload(str(url), public_id =str(name))
-        print cloudinary.utils.cloudinary_url(str(name)+".jpg")
-        return cloudinary.utils.cloudinary_url(str(name)+".jpg")
+        cloudinary_url =  cloudinary.utils.cloudinary_url(str(name)+".jpg")[0]
 
+        image = Image(url=cloudinary_url, user_id=g.user.id)
+        db.session.add(image)
+        db.session.commit()
+
+        return cloudinary_url
    except:
        # you sunk my battleship
         print "Unexpected error:", sys.exc_info()[0]
         raise
 
 if __name__ == '__main__':
-    if not os.path.exists('db.sqlite'):
-        db.create_all()
+    db.create_all()
+    # if not os.path.exists('db.sqlite'):
+    #     db.create_all()
     app.run(debug=True)
