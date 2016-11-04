@@ -8,7 +8,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-from flask import Flask, abort, request, jsonify, g, url_for
+from flask import Flask, abort, request, jsonify, g, url_for, render_template
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
 from sqlalchemy import ForeignKey
@@ -132,6 +132,24 @@ def get_auth_token():
 def get_resource():
     return jsonify({'data': 'Hello, %s!' % g.user.username})
 
+@app.route('/')
+def show_homepage():
+    return render_template('layout.html')
+
+@app.route('/images')
+def show_images():
+    user = User.query.filter_by(id=1).first()
+    results = user.images
+    urls = []
+
+    for result in results:
+        urls.append(result.url)
+
+    images = json.dumps(urls)
+
+
+    return render_template('images.html', images=images)
+
 
 @app.route('/api/dump')
 @auth.login_required
@@ -164,7 +182,7 @@ def upload_image():
 
         return cloudinary_url
    except:
-       # you sunk my battleship!
+       # you sunk my battleship
         print "Unexpected error:", sys.exc_info()[0]
         raise
 
@@ -172,4 +190,4 @@ if __name__ == '__main__':
     db.create_all()
     # if not os.path.exists('db.sqlite'):
     #     db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

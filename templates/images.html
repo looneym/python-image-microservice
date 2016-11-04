@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<script>
+var images = {{ images|safe }}
+
+$(document).ready( function() {
+  for (var i = 0 ; i < images.length ; i++){
+    var url = images[i]
+
+    $("#image_container").append(
+        "<div class='col-lg-3 col-md-4 col-xs-6 thumb'>" +
+        "<a class='thumbnail' href='#'>" +
+        "<img class='img-responsive' src="+ url +">" +
+        "</a>");
+
+  }
+  });
+</script>
+
+<!-- Page Content -->
+<div class="container">
+
+    <div class="row" id="image_container">
+
+
+
+
+  </div>
+</div>
+
+
+{% endblock %}
