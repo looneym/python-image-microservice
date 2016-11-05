@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block body %}
+
 <script>
 var images = {{ images|safe }}
 $(document).ready( function() {
@@ -36,6 +37,7 @@ $(document).ready( function() {
   }
 });
 </script>
+
 <script>
 var deleteImage = function(url){console.log(url);}
 </script>
@@ -47,23 +49,5 @@ var deleteImage = function(url){console.log(url);}
   <div class="container" id="modal_container">
   </div>
 </div>
-
-
-<div class="portfolio-modal modal fade" id="testModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-content">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8 col-lg-offset-2">
-                    <div class="modal-body">
-                        <p><button type="button" class="btn btn-danger">Delete</button>
-                        <button type="button" class="btn btn-info" data-dismiss="modal"> &#160; Close  &#160;</button></p>
-                        <img src="https://res.cloudinary.com/imgrab/image/upload/v1478303468/umrtz23a4zldvzj29fiy.jpg" class="img-responsive img-centered" alt="">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 {% endblock %}
