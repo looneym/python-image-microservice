@@ -141,7 +141,6 @@ def show_images():
     user = User.query.filter_by(id=1).first()
     results = user.images
     results.reverse()
-    
     urls = []
 
     for result in results:
