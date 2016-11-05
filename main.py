@@ -32,8 +32,8 @@ auth = HTTPBasicAuth()
 # CDN API utility
 cloudinary.config(
       cloud_name = 'imgrab',
-      api_key = '',
-      api_secret = ''
+      api_key = '647421229246868',
+      api_secret = 'OBB7DB6VftnH2b7oZ9MUQ6LpfLg'
     )
 
 
@@ -140,6 +140,8 @@ def show_homepage():
 def show_images():
     user = User.query.filter_by(id=1).first()
     results = user.images
+    results.reverse()
+    
     urls = []
 
     for result in results:
@@ -169,12 +171,15 @@ def upload_image():
    print request.data
    data = json.loads(request.data)
 
-   name = data['name']
+   # name = data['name']
    url = data['url']
 
    try:
-        cloudinary.uploader.upload(str(url), public_id =str(name))
-        cloudinary_url =  cloudinary.utils.cloudinary_url(str(name)+".jpg")[0]
+
+
+
+        cloudinary_response = cloudinary.uploader.upload(str(url))
+        cloudinary_url =  cloudinary_response['secure_url']
 
         image = Image(url=cloudinary_url, user_id=g.user.id)
         db.session.add(image)

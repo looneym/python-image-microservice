@@ -1,32 +1,68 @@
 {% extends "layout.html" %}
 {% block body %}
-
 <script>
 var images = {{ images|safe }}
-
 $(document).ready( function() {
   for (var i = 0 ; i < images.length ; i++){
+
     var url = images[i]
 
     $("#image_container").append(
+
         "<div class='col-lg-3 col-md-4 col-xs-6 thumb'>" +
-        "<a class='thumbnail' href='#'>" +
+        "<a class='thumbnail'  data-toggle='modal'" +
+        "data-target='#image-modal-" + i + "'>" +
         "<img class='img-responsive' src="+ url +">" +
         "</a>");
 
+    $("#modal_container").append(
+
+        "<div class='portfolio-modal modal fade' id='image-modal-"+ i +"' tabindex='-1' role='dialog' aria-hidden='true'>" +
+        "<div class='modal-content'>" +
+        "<div class='container'>" +
+        "<div class='row'>" +
+        "<div class='col-lg-8 col-lg-offset-2'>" +
+        "<div class='modal-body'>" +
+        "<p><button type='button' class='btn btn-danger' onClick=deleteImage('"+ url +"') >Delete</button> " +
+        " <button type='button' class='btn btn-info' data-dismiss='modal'> &#160; Close  &#160;</button></p>" +
+        "<img src='"+ url +"' class='img-responsive img-centered' >" +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+        "</div>"
+      );
   }
-  });
+});
+</script>
+<script>
+var deleteImage = function(url){console.log(url);}
 </script>
 
 <!-- Page Content -->
 <div class="container">
-
-    <div class="row" id="image_container">
-
-
-
-
+  <div class="row" id="image_container">
   </div>
+  <div class="container" id="modal_container">
+  </div>
+</div>
+
+
+<div class="portfolio-modal modal fade" id="testModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2">
+                    <div class="modal-body">
+                        <p><button type="button" class="btn btn-danger">Delete</button>
+                        <button type="button" class="btn btn-info" data-dismiss="modal"> &#160; Close  &#160;</button></p>
+                        <img src="https://res.cloudinary.com/imgrab/image/upload/v1478303468/umrtz23a4zldvzj29fiy.jpg" class="img-responsive img-centered" alt="">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 
