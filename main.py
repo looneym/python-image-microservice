@@ -8,10 +8,13 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-from flask import Flask, abort, request, jsonify, g, url_for, render_template
+from flask import Flask, abort, request, jsonify, g, url_for, render_template, redirect
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
-from flask.ext.login import LoginManager, UserMixin, login_required
+
+from flask.ext.login import LoginManager, UserMixin,login_required, login_user, logout_user
+
+
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
@@ -108,6 +111,31 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.get(user_id)
 
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     # Here we use a class of some kind to represent and validate our
+#     # client-side form data. For example, WTForms is a library that will
+#     # handle this for us, and we use a custom LoginForm to validate.
+#     form = LoginForm()
+#     if form.validate_on_submit():
+#         # Login and validate the user.
+#         # user should be an instance of your `User` class
+#         login_user(user)
+#
+#         flask.flash('Logged in successfully.')
+#
+#         next = flask.request.args.get('next')
+#         # is_safe_url should check if the url is safe for redirects.
+#         # See http://flask.pocoo.org/snippets/62/ for an example.
+#         if not is_safe_url(next):
+#             return flask.abort(400)
+#
+#         return flask.redirect(next or flask.url_for('index'))
+#     return flask.render_template('login.html', form=form)
+
+
+
+
 @auth.verify_password
 def verify_password(username_or_token, password):
     # first try to authenticate by token
@@ -126,6 +154,31 @@ def verify_password(username_or_token, password):
         g.authenticated_via = "password"
         return True
 
+# somewhere to login
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        print username
+        print password
+
+        # try to authenticate with username/password
+        user = User.query.filter_by(username=username).first()
+        if not user or not user.verify_password(password):
+            return abort(401)
+        else:
+            g.user = user
+            g.authenticated_via = "password"
+            login_user(g.user)
+
+            if request.args.get("next") is not None:
+                return redirect(request.args.get("next"))
+            else:
+                return redirect("/images")
+
+    else:
+        return render_template('login.html')
 
 @app.route('/api/users', methods=['POST'])
 def new_user():
