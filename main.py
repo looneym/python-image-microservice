@@ -115,7 +115,9 @@ class User(db.Model, UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    user = User.get(user_id)
+    g.user = user
+    return user
 
 @auth.verify_password
 def verify_password(username_or_token, password):
@@ -153,8 +155,7 @@ def new_user():
     user.hash_password(password)
     db.session.add(user)
     db.session.commit()
-    return (jsonify({'username': user.username}), 201,
-            {'Location': url_for('get_user', id=user.id, _external=True)})
+    return (jsonify({'username': user.username}))
 
 @app.route('/api/token')
 @auth.login_required
@@ -193,13 +194,20 @@ def upload_image():
 
 @app.route('/')
 def show_homepage():
-    return render_template('layout.html')
+    return render_template('home.html')
+
+@app.route('/about')
+def show_about_page():
+    return render_template('about.html')
+
+@app.route('/help')
+def show_help_page():
+    return render_template('help.html')
 
 @app.route('/images')
 @login_required
 def show_images():
-    user = User.query.filter_by(id=1).first()
-    results = user.images
+    results = g.user.images
     results.reverse()
     urls = []
 
@@ -207,8 +215,6 @@ def show_images():
         urls.append(result.url)
 
     images = json.dumps(urls)
-
-
     return render_template('images.html', images=images)
 
 @app.route("/login", methods=["GET", "POST"])
