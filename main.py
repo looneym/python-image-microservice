@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os
-
 import requests
 import json
 import sys
@@ -11,10 +10,7 @@ import cloudinary.api
 from flask import Flask, abort, request, jsonify, g, url_for, render_template, redirect
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
-
 from flask.ext.login import LoginManager, UserMixin,login_required, login_user, logout_user
-
-
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
@@ -24,29 +20,39 @@ from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 
 
-# initialization
+########################################
+##
+##  Configuration and Setup
+##
+########################################
+
+# configure flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
-# flask-login config
+# configure flask-login
 login_manager = LoginManager()
 login_manager.login_view = "/login"
 login_manager.init_app(app)
-
 
 # extensions
 db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
 
-# CDN API utility
+# image CDN API utility
 cloudinary.config(
       cloud_name = 'imgrab',
       api_key = '647421229246868',
       api_secret = 'OBB7DB6VftnH2b7oZ9MUQ6LpfLg'
     )
 
+########################################
+##
+##  DB Models
+##
+########################################
 
 class Image(db.Model):
     __tablename__ = 'images'
@@ -90,52 +96,26 @@ class User(db.Model, UserMixin):
         user = User.query.get(data['id'])
         return user
 
-# @login_manager.request_loader
-# def load_user(request):
-#     token = request.headers.get('Authorization')
-#     print "=========================="
-#     print token
-#     print "=========================="
-#     if token is None:
-#         token = request.args.get('token')
-#
-#     if token is not None:
-#         username,password = token.split(":") # naive token
-#         user_entry = User.get(username)
-#         if (user_entry is not None):
-#             user = User(user_entry[0],user_entry[1])
-#             if (user.password == password):
-#                 return user
-#     return None
+########################################
+##
+##  Authentication utils
+##
+##  A Note on Authentication: this app uses http basic Authentication
+##  for API endpoints. These are secured with the following function
+##  decorator: @auth.login_required which will force a call to
+##  @auth.verify_password
+##
+##  The application also uses flask-login for browser-based login using
+##  forms and cookies. These views are secured with @login_required which
+##  will attempt to load the user from the session cookie using
+##  @login_manager.user_loader if a cookie is present and will redirect to
+##  the login view otherwise
+##
+########################################
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
-
-# @app.route('/login', methods=['GET', 'POST'])
-# def login():
-#     # Here we use a class of some kind to represent and validate our
-#     # client-side form data. For example, WTForms is a library that will
-#     # handle this for us, and we use a custom LoginForm to validate.
-#     form = LoginForm()
-#     if form.validate_on_submit():
-#         # Login and validate the user.
-#         # user should be an instance of your `User` class
-#         login_user(user)
-#
-#         flask.flash('Logged in successfully.')
-#
-#         next = flask.request.args.get('next')
-#         # is_safe_url should check if the url is safe for redirects.
-#         # See http://flask.pocoo.org/snippets/62/ for an example.
-#         if not is_safe_url(next):
-#             return flask.abort(400)
-#
-#         return flask.redirect(next or flask.url_for('index'))
-#     return flask.render_template('login.html', form=form)
-
-
-
 
 @auth.verify_password
 def verify_password(username_or_token, password):
@@ -155,7 +135,11 @@ def verify_password(username_or_token, password):
         g.authenticated_via = "password"
         return True
 
-
+########################################
+##
+##  API Endpoints
+##
+########################################
 
 @app.route('/api/users', methods=['POST'])
 def new_user():
@@ -172,15 +156,6 @@ def new_user():
     return (jsonify({'username': user.username}), 201,
             {'Location': url_for('get_user', id=user.id, _external=True)})
 
-
-@app.route('/api/users/<int:id>')
-def get_user(id):
-    user = User.query.get(id)
-    if not user:
-        abort(400)
-    return jsonify({'username': user.username})
-
-
 @app.route('/api/token')
 @auth.login_required
 def get_auth_token():
@@ -190,11 +165,31 @@ def get_auth_token():
     else:
         abort(403)
 
-
-@app.route('/api/resource')
+@app.route('/api/image',methods=['POST'])
 @auth.login_required
-def get_resource():
-    return jsonify({'data': 'Hello, %s!' % g.user.username})
+def upload_image():
+   print request.data
+   data = json.loads(request.data)
+   # name = data['name']
+   url = data['url']
+
+   try:
+        cloudinary_response = cloudinary.uploader.upload(str(url))
+        cloudinary_url =  cloudinary_response['secure_url']
+        image = Image(url=cloudinary_url, user_id=g.user.id)
+        db.session.add(image)
+        db.session.commit()
+        return cloudinary_url
+   except:
+       # you sunk my battleship
+        print "Unexpected error:", sys.exc_info()[0]
+        raise
+
+########################################
+##
+##  Webapp views
+##
+########################################
 
 @app.route('/')
 def show_homepage():
@@ -216,7 +211,6 @@ def show_images():
 
     return render_template('images.html', images=images)
 
-# somewhere to login
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == 'POST':
@@ -247,45 +241,6 @@ def login():
 def logout():
     logout_user()
     return redirect("/login")
-
-
-@app.route('/api/dump')
-@auth.login_required
-def dump_db():
-    results = Image.query.all()
-    images = []
-
-    for result in results:
-        images.append(result.url)
-
-    data = json.dumps(images)
-    return data
-
-@app.route('/api/image',methods=['POST'])
-@auth.login_required
-def upload_image():
-   print request.data
-   data = json.loads(request.data)
-
-   # name = data['name']
-   url = data['url']
-
-   try:
-
-
-
-        cloudinary_response = cloudinary.uploader.upload(str(url))
-        cloudinary_url =  cloudinary_response['secure_url']
-
-        image = Image(url=cloudinary_url, user_id=g.user.id)
-        db.session.add(image)
-        db.session.commit()
-
-        return cloudinary_url
-   except:
-       # you sunk my battleship
-        print "Unexpected error:", sys.exc_info()[0]
-        raise
 
 if __name__ == '__main__':
     db.create_all()
