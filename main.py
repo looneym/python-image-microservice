@@ -32,6 +32,7 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
 # flask-login config
 login_manager = LoginManager()
+login_manager.login_view = "/login"
 login_manager.init_app(app)
 
 
@@ -154,31 +155,7 @@ def verify_password(username_or_token, password):
         g.authenticated_via = "password"
         return True
 
-# somewhere to login
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        print username
-        print password
 
-        # try to authenticate with username/password
-        user = User.query.filter_by(username=username).first()
-        if not user or not user.verify_password(password):
-            return abort(401)
-        else:
-            g.user = user
-            g.authenticated_via = "password"
-            login_user(g.user)
-
-            if request.args.get("next") is not None:
-                return redirect(request.args.get("next"))
-            else:
-                return redirect("/images")
-
-    else:
-        return render_template('login.html')
 
 @app.route('/api/users', methods=['POST'])
 def new_user():
@@ -220,11 +197,11 @@ def get_resource():
     return jsonify({'data': 'Hello, %s!' % g.user.username})
 
 @app.route('/')
-@auth.login_required
 def show_homepage():
     return render_template('layout.html')
 
 @app.route('/images')
+@login_required
 def show_images():
     user = User.query.filter_by(id=1).first()
     results = user.images
@@ -238,6 +215,38 @@ def show_images():
 
 
     return render_template('images.html', images=images)
+
+# somewhere to login
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        print username
+        print password
+
+        # try to authenticate with username/password
+        user = User.query.filter_by(username=username).first()
+        if not user or not user.verify_password(password):
+            return redirect("/login")
+        else:
+            g.user = user
+            g.authenticated_via = "password"
+            login_user(g.user)
+
+            if request.args.get("next") is not None:
+                return redirect(request.args.get("next"))
+            else:
+                return redirect("/images")
+
+    else:
+        return render_template('login.html')
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect("/login")
 
 
 @app.route('/api/dump')

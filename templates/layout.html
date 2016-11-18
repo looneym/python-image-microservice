@@ -63,6 +63,16 @@
                   <li class="page-scroll">
                       <a href="#">Contact</a>
                   </li>
+                  {% if current_user.is_authenticated %}
+                  <li class="page-scroll">
+                      <a href="/logout">Logout</a>
+                  </li>
+                  {% endif %}
+                  {% if not current_user.is_authenticated %}
+                  <li class="page-scroll">
+                      <a href="/login">Login</a>
+                  </li>
+                  {% endif %}
               </ul>
           </div>
           <!-- /.navbar-collapse -->
