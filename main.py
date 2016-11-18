@@ -11,6 +11,8 @@ import cloudinary.api
 from flask import Flask, abort, request, jsonify, g, url_for, render_template
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
+from flask.ext.login import LoginManager, UserMixin, login_required
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -24,6 +26,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+
+# flask-login config
+login_manager = LoginManager()
+login_manager.init_app(app)
+
 
 # extensions
 db = SQLAlchemy(app)
@@ -45,7 +52,7 @@ class Image(db.Model):
 
     user = relationship("User", back_populates="images")
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), index=True)
@@ -62,6 +69,11 @@ class User(db.Model):
         s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': self.id})
 
+    @classmethod
+    def get(cls,id):
+        user = User.query.filter_by(id=id).first()
+        return user
+
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(app.config['SECRET_KEY'])
@@ -73,6 +85,28 @@ class User(db.Model):
             return None    # invalid token
         user = User.query.get(data['id'])
         return user
+
+# @login_manager.request_loader
+# def load_user(request):
+#     token = request.headers.get('Authorization')
+#     print "=========================="
+#     print token
+#     print "=========================="
+#     if token is None:
+#         token = request.args.get('token')
+#
+#     if token is not None:
+#         username,password = token.split(":") # naive token
+#         user_entry = User.get(username)
+#         if (user_entry is not None):
+#             user = User(user_entry[0],user_entry[1])
+#             if (user.password == password):
+#                 return user
+#     return None
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
 
 @auth.verify_password
 def verify_password(username_or_token, password):
@@ -133,6 +167,7 @@ def get_resource():
     return jsonify({'data': 'Hello, %s!' % g.user.username})
 
 @app.route('/')
+@auth.login_required
 def show_homepage():
     return render_template('layout.html')
 
