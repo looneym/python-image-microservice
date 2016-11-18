@@ -121,6 +121,7 @@ def load_user(user_id):
 
 @auth.verify_password
 def verify_password(username_or_token, password):
+    print username_or_token
     # first try to authenticate by token
     user = User.verify_auth_token(username_or_token)
     if user:
@@ -171,7 +172,6 @@ def get_auth_token():
 def upload_image():
    print request.data
    data = json.loads(request.data)
-   # name = data['name']
    url = data['url']
 
    try:
@@ -217,13 +217,30 @@ def show_images():
     images = json.dumps(urls)
     return render_template('images.html', images=images)
 
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first() is not None:
+            abort(400)
+        else:
+            user = User(username=username)
+            user.hash_password(password)
+            db.session.add(user)
+            db.session.commit()
+            g.user = user
+            g.authenticated_via = "password"
+            login_user(g.user)
+            return redirect('/help')
+    else:
+        return render_template('signup.html')
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        print username
-        print password
 
         # try to authenticate with username/password
         user = User.query.filter_by(username=username).first()

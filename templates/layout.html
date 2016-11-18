@@ -58,10 +58,10 @@
                       <a href="/images">My Images</a>
                   </li>
                   <li class="page-scroll">
-                      <a href="#">Help</a>
+                      <a href="/help">Help</a>
                   </li>
                   <li class="page-scroll">
-                      <a href="#">Contact</a>
+                      <a href="/about">About</a>
                   </li>
                   {% if current_user.is_authenticated %}
                   <li class="page-scroll">
@@ -71,6 +71,9 @@
                   {% if not current_user.is_authenticated %}
                   <li class="page-scroll">
                       <a href="/login">Login</a>
+                  </li>
+                  <li class="page-scroll">
+                      <a href="/signup">Signup</a>
                   </li>
                   {% endif %}
               </ul>
@@ -109,7 +112,6 @@
 
 <!-- Bootstrap Core JavaScript -->
 <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
-
 
 
 </body>
